@@ -303,6 +303,9 @@ public class ConfigurationManagementGraph {
             }
             management.commit();
             graph.tx().commit();
+        } else {
+            management.rollback();
+            graph.tx().rollback();
         }
     }
 
