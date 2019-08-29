@@ -371,7 +371,7 @@ public class StandardJanusGraphTx extends JanusGraphBlueprintsTransaction implem
     }
 
     private boolean isValidVertexId(long id) {
-        return id>0 && (idInspector.isSchemaVertexId(id) || idInspector.isUserVertexId(id));
+        return IDManager.isTemporary(id) || idInspector.isSchemaVertexId(id) || idInspector.isUserVertexId(id);
     }
 
     @Override

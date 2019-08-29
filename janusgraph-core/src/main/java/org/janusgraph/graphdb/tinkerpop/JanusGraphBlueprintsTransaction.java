@@ -131,7 +131,7 @@ public abstract class JanusGraphBlueprintsTransaction implements JanusGraphTrans
         int pos = 0;
         for (Object vertexId : vertexIds) {
             long id = ElementUtils.getVertexId(vertexId);
-            if (id > 0) ids[pos++] = id;
+            ids[pos++] = id;
         }
         if (pos==0) return Collections.emptyIterator();
         if (pos<ids.length) ids = Arrays.copyOf(ids,pos);
