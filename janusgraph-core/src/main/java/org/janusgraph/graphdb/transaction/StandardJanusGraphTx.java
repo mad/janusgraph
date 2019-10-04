@@ -800,7 +800,7 @@ public class StandardJanusGraphTx extends JanusGraphBlueprintsTransaction implem
                    3) the cardinalities match (if we overwrite a set with single, we need to read all other values to delete)
                 */
 
-                if ( (!config.hasVerifyUniqueness() || ((InternalRelationType)key).getConsistencyModifier()!=ConsistencyModifier.LOCK) &&
+                if (vertex.isNew() || (!config.hasVerifyUniqueness() || ((InternalRelationType)key).getConsistencyModifier()!=ConsistencyModifier.LOCK) &&
                         !TypeUtil.hasAnyIndex(key) && cardinality==keyCardinality.convert()) {
                     //Only delete in-memory so as to not trigger a read from the database which isn't necessary because we will overwrite blindly
                     ((InternalVertex) vertex).getAddedRelations(p -> p.getType().equals(key)).forEach(propertyRemover);
