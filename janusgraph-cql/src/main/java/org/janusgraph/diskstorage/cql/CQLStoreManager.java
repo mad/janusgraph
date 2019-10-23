@@ -160,8 +160,15 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
         this.batchSize = configuration.get(BATCH_STATEMENT_SIZE);
         this.atomicBatch = configuration.get(ATOMIC_BATCH_MUTATE);
 
+        int maximumPoolSize =
+            Math.min(
+                configuration.get(REMOTE_MAX_REQUESTS_PER_CONNECTION) * configuration.get(REMOTE_MAX_CONNECTIONS_PER_HOST)
+                + PoolingOptions.DEFAULT_MAX_QUEUE_SIZE,
+                configuration.get(LOCAL_MAX_REQUESTS_PER_CONNECTION) * configuration.get(LOCAL_MAX_CONNECTIONS_PER_HOST)
+                + PoolingOptions.DEFAULT_MAX_QUEUE_SIZE);
+
         this.executorService = new ThreadPoolExecutor(10,
-                100,
+                maximumPoolSize,
                 1,
                 TimeUnit.MINUTES,
                 new LinkedBlockingQueue<>(),
@@ -469,7 +476,7 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
                 return Iterator.concat(deletions, additions);
             });
         }));
-        final Future<ResultSet> result = Future.fromJavaFuture(this.executorService, this.session.executeAsync(batchStatement));
+        final Future<ResultSet> result = Future.fromJavaFuture(this.executorService.submit(() -> this.session.executeAsync(batchStatement).get()));
 
         result.await();
         if (result.isFailure()) {
@@ -499,11 +506,11 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
 
                 return Iterator.concat(deletions, additions)
                         .grouped(this.batchSize)
-                        .map(group -> Future.fromJavaFuture(this.executorService,
+                        .map(group -> Future.fromJavaFuture(this.executorService.submit(() ->
                                 this.session.executeAsync(
                                         new BatchStatement(Type.UNLOGGED)
                                                 .addAll(group)
-                                                .setConsistencyLevel(getTransaction(txh).getWriteConsistencyLevel()))));
+                                                .setConsistencyLevel(getTransaction(txh).getWriteConsistencyLevel())).get())));
             });
         }));
 
