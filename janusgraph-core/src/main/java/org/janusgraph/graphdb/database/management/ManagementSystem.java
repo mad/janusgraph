@@ -196,7 +196,19 @@ public class ManagementSystem implements JanusGraphManagement {
 
         //Communicate schema changes
         if (!updatedTypes.isEmpty() || evictGraphFromCache) {
-            managementLogger.sendCacheEviction(updatedTypes, evictGraphFromCache, updatedTypeTriggers, getOpenInstancesInternal());
+            Set<String> openInstancesInternal = getOpenInstancesInternal();
+            if (openInstancesInternal.size() > 1) {
+                managementLogger.sendCacheEviction(updatedTypes, evictGraphFromCache, updatedTypeTriggers, openInstancesInternal);
+            } else {
+                for (Callable<Boolean> trigger : updatedTypeTriggers) {
+                    try {
+                        boolean status = trigger.call();
+                        assert status;
+                    } catch (Throwable e) {
+                        LOGGER.error("Could not execute trigger ["+trigger.toString()+"]", e);
+                    }
+                }
+            }
             for (JanusGraphSchemaVertex schemaVertex : updatedTypes) {
                 schemaCache.expireSchemaElement(schemaVertex.longId());
             }
