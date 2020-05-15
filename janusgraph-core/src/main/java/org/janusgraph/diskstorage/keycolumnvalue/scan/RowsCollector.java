@@ -14,12 +14,14 @@
 
 package org.janusgraph.diskstorage.keycolumnvalue.scan;
 
+import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.PermanentBackendException;
-import org.janusgraph.diskstorage.TemporaryBackendException;
 import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
+import static org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor.PROCESSOR_TIMEOUT_MIN;
 import static org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor.Row;
 
 /**
@@ -38,7 +40,13 @@ abstract class RowsCollector {
         this.rowQueue = rowQueue;
     }
 
-    abstract void run() throws InterruptedException, TemporaryBackendException;
+    void add(Row e) throws InterruptedException, PermanentBackendException {
+        if (!rowQueue.offer(e, PROCESSOR_TIMEOUT_MIN, TimeUnit.MINUTES)) {
+            throw new PermanentBackendException("Timed out waiting for processing row data - processor error likely");
+        }
+    }
+
+    abstract void run() throws InterruptedException, BackendException;
 
     abstract void join() throws InterruptedException;
 

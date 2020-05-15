@@ -82,7 +82,7 @@ class SingleThreadRowsCollector extends RowsCollector {
                 sliceToEntriesMap.entrySet().forEach(mapEntry -> {
                     rowEntries.put(mapEntry.getKey(), EntryArrayList.of(mapEntry.getValue()));
                 });
-                rowQueue.put(new Row(key, rowEntries));
+                add(new Row(key, rowEntries));
             }
         } catch (InterruptedException e) {
             log.error("Data-pulling thread interrupted while waiting on queue or data", e);

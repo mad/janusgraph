@@ -38,7 +38,8 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
     private static final Logger log =
             LoggerFactory.getLogger(StandardScannerExecutor.class);
 
-    private static final int TIMEOUT_MS = 180000; // 60 seconds
+    private static final int TIMEOUT_MS = 180000; // 3 min
+    static final int PROCESSOR_TIMEOUT_MIN = 10;
     static final int TIME_PER_TRY = 10; // 10 milliseconds
 
     private final ScanJob job;
@@ -82,6 +83,7 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
 
         BlockingQueue<Row> processorQueue;
 
+        Throwable exception = null;
         try {
             job.workerIterationStart(jobConfiguration, graphConfiguration, metrics);
 
@@ -107,11 +109,15 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
             rowsCollector = buildScanner(processorQueue, queries);
 
         }  catch (Throwable e) {
+            exception = e;
             log.error("Exception trying to setup the job:", e);
             cleanupSilent();
             job.workerIterationEnd(metrics);
-            setException(e);
             return;
+        } finally {
+            if (exception != null) {
+                setException(exception);
+            }
         }
 
         Processor[] processors = new Processor[numProcessors];
@@ -145,12 +151,15 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                 set(metrics);
             }
         } catch (Throwable e) {
+            exception = e;
             log.error("Exception occurred during job execution:", e);
             job.workerIterationEnd(metrics);
-            setException(e);
         } finally {
             Threads.terminate(processors);
             cleanupSilent();
+            if (exception != null) {
+                setException(exception);
+            }
         }
     }
 

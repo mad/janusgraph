@@ -97,7 +97,7 @@ class MultiThreadsRowsCollector extends RowsCollector {
         }
     }
 
-    void run() throws InterruptedException, TemporaryBackendException {
+    void run() throws InterruptedException, BackendException {
         int numQueries = queries.size();
         SliceResult[] currentResults = new SliceResult[numQueries];
         while (!interrupted) {
@@ -107,9 +107,7 @@ class MultiThreadsRowsCollector extends RowsCollector {
             if (conditionQuery==null) break; //Termination condition - primary query has no more data
             final StaticBuffer key = conditionQuery.key;
 
-            Row e = buildRow(numQueries, currentResults, key);
-
-            rowQueue.put(e);
+            add(buildRow(numQueries, currentResults, key));
         }
     }
 
