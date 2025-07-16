@@ -560,7 +560,6 @@ public class LuceneIndex implements IndexProvider {
     }
 
     private static Sort getSortOrder(List<IndexQuery.OrderEntry> orders, KeyInformation.StoreRetriever information) {
-        final Sort sort = new Sort();
         if (!orders.isEmpty()) {
             final SortField[] fields = new SortField[orders.size()];
             for (int i = 0; i < orders.size(); i++) {
@@ -571,7 +570,7 @@ public class LuceneIndex implements IndexProvider {
                 else if (AttributeUtils.isWholeNumber(dataType)) sortType = SortField.Type.LONG;
                 else if (AttributeUtils.isDecimal(dataType)) sortType = SortField.Type.DOUBLE;
                 else if (dataType.equals(Instant.class) || dataType.equals(Date.class)) sortType = SortField.Type.LONG;
-                else if (dataType.equals(Boolean.class)) sortType = SortField.Type.LONG;
+                else if (dataType.equals(Boolean.class)) sortType = SortField.Type.INT;
                 else
                     Preconditions.checkArgument(false, "Unsupported order specified on field [%s] with datatype [%s]", order.getKey(), dataType);
                 KeyInformation ki = information.get(order.getKey());
@@ -583,9 +582,9 @@ public class LuceneIndex implements IndexProvider {
                 }
                 fields[i] = new SortField(fieldKey, sortType, order.getOrder() == Order.DESC);
             }
-            sort.setSort(fields);
+            return new Sort(fields);
         }
-        return sort;
+        return new Sort();
     }
 
     @Override
@@ -973,7 +972,7 @@ public class LuceneIndex implements IndexProvider {
             else if (Float.class.isAssignableFrom(fieldType)) return SortField.Type.FLOAT;
             else if (Double.class.isAssignableFrom(fieldType)) return SortField.Type.DOUBLE;
         }
-        return SortField.Type.INT;
+        return SortField.Type.LONG;
     }
 
     private Number adaptNumberType(Number value, Class<? extends Number> expectedType) {

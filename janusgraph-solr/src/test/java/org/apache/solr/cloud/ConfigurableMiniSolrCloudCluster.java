@@ -14,7 +14,7 @@
 
 package org.apache.solr.cloud;
 
-import org.apache.solr.client.solrj.embedded.JettyConfig;
+import org.apache.solr.embedded.JettyConfig;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -39,6 +39,6 @@ public class ConfigurableMiniSolrCloudCluster extends MiniSolrCloudCluster {
     */
     public ConfigurableMiniSolrCloudCluster(int numServers, Path baseDir, String solrXml, JettyConfig jettyConfig,
     ZkTestServer zkTestServer, Optional<String> securityJson) throws Exception {
-        super(numServers, baseDir, solrXml, jettyConfig, zkTestServer, securityJson);
+        super(numServers, baseDir, solrXml, jettyConfig, zkTestServer, securityJson, false);
     }
 }

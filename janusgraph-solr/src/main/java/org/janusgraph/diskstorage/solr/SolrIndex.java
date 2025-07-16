@@ -34,6 +34,7 @@ import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudHttp2SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
@@ -41,6 +42,7 @@ import org.apache.solr.client.solrj.impl.Krb5HttpClientBuilder;
 import org.apache.solr.client.solrj.impl.LBHttpSolrClient;
 import org.apache.solr.client.solrj.impl.PreemptiveAuth;
 import org.apache.solr.client.solrj.impl.SolrHttpClientBuilder;
+import org.apache.solr.client.solrj.impl.ZkClientClusterStateProvider;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.CollectionAdminResponse;
@@ -294,13 +296,8 @@ public class SolrIndex implements IndexProvider {
                         zookeeperUrl[i] = hostAndPort;
                     }
                 }
-                final CloudSolrClient.Builder builder = new CloudSolrClient
+                final CloudHttp2SolrClient.Builder builder = new CloudSolrClient
                     .Builder(Arrays.asList(zookeeperUrl), chroot)
-                    .withLBHttpSolrClientBuilder(
-                        new LBHttpSolrClient.Builder()
-                            .withHttpSolrClientBuilder(new HttpSolrClient.Builder().withInvariantParams(clientParams))
-                            .withBaseSolrUrls(config.get(HTTP_URLS))
-                         )
                     .sendUpdatesOnlyToShardLeaders();
                 final CloudSolrClient cloudServer = builder.build();
                 cloudServer.connect();
@@ -1121,7 +1118,7 @@ public class SolrIndex implements IndexProvider {
         }
         try {
             logger.debug("Clearing storage from Solr: {}", solrClient);
-            final ZkStateReader zkStateReader = ((CloudSolrClient) solrClient).getZkStateReader();
+            final ZkStateReader zkStateReader = ((ZkClientClusterStateProvider) ((CloudSolrClient) solrClient).getClusterStateProvider()).getZkStateReader();
             zkStateReader.forciblyRefreshAllClusterStateSlow();
             final ClusterState clusterState = zkStateReader.getClusterState();
             for (final String collection : clusterState.getCollectionsMap().keySet()) {
@@ -1264,7 +1261,7 @@ public class SolrIndex implements IndexProvider {
         if (mode!=Mode.CLOUD) throw new UnsupportedOperationException("Operation only supported for SolrCloud");
         final CloudSolrClient server = (CloudSolrClient) solrClient;
         try {
-            final ZkStateReader zkStateReader = server.getZkStateReader();
+            final ZkStateReader zkStateReader = ((ZkClientClusterStateProvider) ((CloudSolrClient) solrClient).getClusterStateProvider()).getZkStateReader();
             zkStateReader.forciblyRefreshAllClusterStateSlow();
             final ClusterState clusterState = zkStateReader.getClusterState();
             final Map<String, DocCollection> collections = clusterState.getCollectionsMap();
@@ -1351,7 +1348,6 @@ public class SolrIndex implements IndexProvider {
             final String  genericConfigSet = config.has(SOLR_DEFAULT_CONFIG) ? config.get(SOLR_DEFAULT_CONFIG):collection;
 
             final CollectionAdminRequest.Create createRequest = CollectionAdminRequest.createCollection(collection, genericConfigSet, numShards, replicationFactor);
-            createRequest.setMaxShardsPerNode(maxShardsPerNode);
 
             final CollectionAdminResponse createResponse = createRequest.process(client);
             if (createResponse.isSuccess()) {
@@ -1368,7 +1364,7 @@ public class SolrIndex implements IndexProvider {
      * Checks if the collection has already been created in Solr.
      */
     private static boolean checkIfCollectionExists(CloudSolrClient server, String collection) throws KeeperException, InterruptedException {
-        final ZkStateReader zkStateReader = server.getZkStateReader();
+        final ZkStateReader zkStateReader = ((ZkClientClusterStateProvider) ((CloudSolrClient) server).getClusterStateProvider()).getZkStateReader();
         zkStateReader.forceUpdateCollection(collection);
         final ClusterState clusterState = zkStateReader.getClusterState();
         return clusterState.getCollectionOrNull(collection) != null;
@@ -1378,7 +1374,7 @@ public class SolrIndex implements IndexProvider {
      * Wait for all the collection shards to be ready.
      */
     private static void waitForRecoveriesToFinish(CloudSolrClient server, String collection) throws KeeperException, InterruptedException {
-        final ZkStateReader zkStateReader = server.getZkStateReader();
+        final ZkStateReader zkStateReader = ((ZkClientClusterStateProvider) ((CloudSolrClient) server).getClusterStateProvider()).getZkStateReader();
         try {
             boolean cont = true;
 

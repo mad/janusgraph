@@ -82,7 +82,19 @@
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
-            <version>${lucene-solr.version}</version>
+            <version>${solr.version}</version>
+            <exclusions>
+                <!-- Use jcl-over-slf4j from gremlin-core -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.solr</groupId>
+            <artifactId>solr-solrj-zookeeper</artifactId>
+            <version>${solr.version}</version>
             <exclusions>
                 <!-- Use jcl-over-slf4j from gremlin-core -->
                 <exclusion>
@@ -93,13 +105,18 @@
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-analyzers-common</artifactId>
-            <version>${lucene-solr.version}</version>
+            <artifactId>lucene-analysis-common</artifactId>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.solr</groupId>
+            <artifactId>solr-hadoop-auth</artifactId>
+            <version>${solr.version}</version>
+            <scope>test</scope>
+        </dependency>        <dependency>
+            <groupId>org.apache.solr</groupId>
             <artifactId>solr-test-framework</artifactId>
-            <version>${lucene-solr.version}</version>
+            <version>${solr.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

@@ -16,7 +16,7 @@ package org.janusgraph.diskstorage.solr;
 
 import com.google.common.base.Joiner;
 import org.apache.kerby.kerberos.kerb.KrbException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
+import org.apache.solr.client.solrj.impl.BaseHttpSolrClient;
 import org.janusgraph.diskstorage.configuration.Configuration;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
@@ -70,7 +70,7 @@ public class SolrIndexKerberosKeytabTest extends SolrIndexTest {
 
     @Test
     public void testSingleStoreFailsWhenKeytabIsMissing() throws Exception {
-        assertThrows(RemoteSolrException.class, () -> {
+        assertThrows(BaseHttpSolrClient.RemoteSolrException.class, () -> {
             // Remove client keytab so authentication will fail
             miniKDC.deleteClientKeyTab();
             super.singleStore();
@@ -79,7 +79,7 @@ public class SolrIndexKerberosKeytabTest extends SolrIndexTest {
 
     @Test
     public void testSingleStoreFailsWhenPrincipalDoesntExist() throws Exception {
-        assertThrows(RemoteSolrException.class, () -> {
+        assertThrows(BaseHttpSolrClient.RemoteSolrException.class, () -> {
             // Remove client principal to simulate a revoked user so authentication will fail
             miniKDC.deleteClientPrincipal();
             super.singleStore();

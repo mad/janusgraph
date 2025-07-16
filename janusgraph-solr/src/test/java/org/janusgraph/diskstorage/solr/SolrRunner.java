@@ -18,9 +18,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import org.apache.commons.io.FileUtils;
-import org.apache.solr.client.solrj.embedded.JettyConfig;
 import org.apache.solr.cloud.ConfigurableMiniSolrCloudCluster;
 import org.apache.solr.cloud.MiniSolrCloudCluster;
+import org.apache.solr.embedded.JettyConfig;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,7 +40,7 @@ public class SolrRunner {
     protected static final int NUM_SERVERS = 1;
     protected static final String[] COLLECTIONS = readCollections();
 
-    private static final String SECURITY_JSON = "{\"authentication\": {\"class\": \"org.apache.solr.security.KerberosPlugin\"}}";
+    private static final String SECURITY_JSON = "{\"authentication\": {\"class\": \"solr.KerberosPlugin\"}}";
 
     private static final String TMP_DIRECTORY = System.getProperty("java.io.tmpdir");
     private static final String TEMPLATE_DIRECTORY = "core-template";
@@ -84,6 +84,7 @@ public class SolrRunner {
                 .withFilters(null)
                 .withServlets(null)
                 .build();
+            System.setProperty("authenticationPlugin", "org.apache.solr.security.hadoop.KerberosPlugin");
             miniSolrCloudCluster = new ConfigurableMiniSolrCloudCluster(NUM_SERVERS, temp.toPath(), solrXml, jettyConfig, null, Optional.of(SECURITY_JSON));
         }
 
