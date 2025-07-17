@@ -53,7 +53,7 @@ jobs:
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
         with:
-          java-version: 8
+          java-version: 11
           distribution: zulu
       - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
@@ -65,58 +65,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - module: cql
-            args: "-Pcassandra3-byteordered -Dtest=\"**/diskstorage/cql/*\""
-            name: cassandra3-byteordered-diskstorage-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur -Dtest=\"**/diskstorage/cql/*\""
-            name: cassandra3-murmur-diskstorage-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-byteordered -Dtest=\"**/graphdb/cql/*\""
-            name: cassandra3-byteordered-graphdb-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur -Dtest=\"**/graphdb/cql/*\""
-            name: cassandra3-murmur-graphdb-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur -Dtest=\"**/hadoop/*\""
-            name: cassandra3-murmur-hadoop-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-byteordered -Dtest=\"**/core/cql/*\""
-            name: cassandra3-byteordered-core-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur -Dtest=\"**/core/cql/*\""
-            name: cassandra3-murmur-core-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur-ssl -Dtest=\"**/diskstorage/cql/CQLStoreTest.java\""
-            name: cassandra3-murmur-ssl-java8
-            java: 8
-          - module: cql
-            args: "-Pcassandra3-murmur-client-auth -Dtest=\"**/diskstorage/cql/CQLStoreTest.java\""
-            name: cassandra3-murmur-client-auth-java8
-            java: 8
-          - module: cql
-            args: "-Pscylladb -Dtest=\"**/diskstorage/cql/*\""
-            name: cassandra3-scylladb-diskstorage-java8
-            java: 8
-          - module: cql
-            args: "-Pscylladb -Dtest=\"**/graphdb/cql/*\""
-            name: cassandra3-scylladb-graphdb-java8
-            java: 8
-          - module: cql
-            args: "-Pscylladb -Dtest=\"**/hadoop/*\""
-            name: cassandra3-scylladb-hadoop-java8
-            java: 8
-          - module: cql
-            args: "-Pscylladb -Dtest=\"**/core/cql/*\""
-            name: cassandra3-scylladb-core-java8
-            java: 8
           - module: cql
             args: "-Pcassandra3-byteordered -Dtest=\"**/diskstorage/cql/*\""
             name: cassandra3-byteordered-diskstorage
@@ -290,7 +238,7 @@ jobs:
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
         with:
-          java-version: 8
+          java-version: 11
           distribution: zulu
       - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
       - run: mvn verify --projects janusgraph-${{ matrix.module }} -Dcassandra.docker.version='3.0.18' ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.args }}

@@ -52,7 +52,7 @@ jobs:
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
         with:
-          java-version: 8
+          java-version: 11
           distribution: zulu
       - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
@@ -82,21 +82,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - module: core
-            java: 8
-          - module: driver
-            java: 8
-          - module: server
-            java: 8
-          - module: test
-            java: 8
-          - module: inmemory
-            args: "-Dtest.skip.tp=false"
-            java: 8
-          - module: berkeleyje
-            java: 8
-          - module: lucene
-            java: 8
           - module: core
             install-args: "-Pjava-11"
             java: 11

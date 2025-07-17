@@ -53,7 +53,7 @@ jobs:
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
         with:
-          java-version: 8
+          java-version: 11
           distribution: zulu
       - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
@@ -65,18 +65,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - module: hbase
-            args: "-Dtest=\"**/diskstorage/hbase/*\""
-            name: hbase2-diskstorage-java8
-            java: 8
-          - module: hbase
-            args: "-Dtest=\"**/graphdb/hbase/*\""
-            name: hbase2-graphdb-java8
-            java: 8
-          - module: hbase
-            args: "-Dtest=\"**/hadoop/*\""
-            name: hbase2-hadoop-java8
-            java: 8
           - module: hbase
             install-args: "-Pjava-11"
             args: "-Dtest=\"**/diskstorage/hbase/*\""
