@@ -46,12 +46,11 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BooleanQuery.Builder;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
-import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
@@ -392,7 +391,7 @@ public class LuceneIndex implements IndexProvider {
                 log.trace("Updating existing document for [{}]", docID);
 
             final int docId = hits.scoreDocs[0].doc;
-            doc = searcher.doc(docId);
+            doc = searcher.storedFields().document(docId);
         }
 
         return doc;
@@ -560,7 +559,6 @@ public class LuceneIndex implements IndexProvider {
     }
 
     private static Sort getSortOrder(List<IndexQuery.OrderEntry> orders, KeyInformation.StoreRetriever information) {
-        final Sort sort = new Sort();
         if (!orders.isEmpty()) {
             final SortField[] fields = new SortField[orders.size()];
             for (int i = 0; i < orders.size(); i++) {
@@ -583,9 +581,9 @@ public class LuceneIndex implements IndexProvider {
                 }
                 fields[i] = new SortField(fieldKey, sortType, order.getOrder() == Order.DESC);
             }
-            sort.setSort(fields);
+            return new Sort(fields);
         }
-        return sort;
+        return new Sort();
     }
 
     @Override
@@ -615,7 +613,7 @@ public class LuceneIndex implements IndexProvider {
             log.debug("Executed query [{}] in {} ms", q, System.currentTimeMillis() - time);
             final List<String> result = new ArrayList<>(docs.scoreDocs.length);
             for (int i = 0; i < docs.scoreDocs.length; i++) {
-                final IndexableField field = searcher.doc(docs.scoreDocs[i].doc, FIELDS_TO_LOAD).getField(DOCID);
+                final IndexableField field = searcher.storedFields().document(docs.scoreDocs[i].doc, FIELDS_TO_LOAD).getField(DOCID);
                 result.add(field == null ? null : field.stringValue());
             }
             return result.stream();
@@ -734,10 +732,7 @@ public class LuceneIndex implements IndexProvider {
     }
 
     private void addExistsQuery(final SearchParams params, final String key) {
-        // some fields like Integer omit norms but have docValues
-        params.addQuery(new DocValuesFieldExistsQuery(key), BooleanClause.Occur.SHOULD);
-        // some fields like Text have no docValue but have norms
-        params.addQuery(new NormsFieldExistsQuery(key), BooleanClause.Occur.SHOULD);
+        params.addQuery(new FieldExistsQuery(key));
     }
 
     private Query combineTerms(String key, List<String> terms, Function<Term, Query> queryCreator) {
@@ -923,7 +918,7 @@ public class LuceneIndex implements IndexProvider {
             log.debug("Executed query [{}] in {} ms", q, System.currentTimeMillis() - time);
             final List<RawQuery.Result<String>> result = new ArrayList<>(docs.scoreDocs.length);
             for (int i = offset; i < docs.scoreDocs.length; i++) {
-                final IndexableField field = searcher.doc(docs.scoreDocs[i].doc, FIELDS_TO_LOAD).getField(DOCID);
+                final IndexableField field = searcher.storedFields().document(docs.scoreDocs[i].doc, FIELDS_TO_LOAD).getField(DOCID);
                 result.add(new RawQuery.Result<>(field == null ? null : field.stringValue(), docs.scoreDocs[i].score));
             }
             return result.stream();
@@ -964,7 +959,7 @@ public class LuceneIndex implements IndexProvider {
         // We ignore offset and limit for totals
         final TopDocs docs = searcher.search(query, 1);
         log.debug("Executed query [{}] in {} ms", query, System.currentTimeMillis() - time);
-        return docs.totalHits.value;
+        return docs.totalHits.value();
     }
 
     private SortField.Type sortFieldType(Class fieldType) {
@@ -989,25 +984,24 @@ public class LuceneIndex implements IndexProvider {
 
     private Number executeMin(IndexSearcher searcher, Query query, String fieldName, Class fieldType) throws IOException {
         final TopFieldDocs docs = searcher.search(query, 1, new Sort(new SortField(fieldName, sortFieldType(fieldType))));
-        final IndexableField field = searcher.doc(docs.scoreDocs[0].doc, Sets.newHashSet(fieldName)).getField(fieldName);
+        final IndexableField field = searcher.storedFields().document(docs.scoreDocs[0].doc, Sets.newHashSet(fieldName)).getField(fieldName);
         return adaptNumberType(field.numericValue(), fieldType);
     }
 
     private Number executeMax(IndexSearcher searcher, Query query, String fieldName, Class fieldType) throws IOException {
         final TopFieldDocs docs = searcher.search(query, 1, new Sort(new SortField(fieldName, sortFieldType(fieldType), true)));
-        final IndexableField field = searcher.doc(docs.scoreDocs[0].doc, Sets.newHashSet(fieldName)).getField(fieldName);
+        final IndexableField field = searcher.storedFields().document(docs.scoreDocs[0].doc, Sets.newHashSet(fieldName)).getField(fieldName);
         return adaptNumberType(field.numericValue(), fieldType);
     }
 
 
     private Number executeSum(IndexSearcher searcher, Query query, String fieldName, Class fieldType) throws IOException {
-        SumCollector collector = new SumCollector(fieldName, searcher);
-        searcher.search(query, collector);
+        double sum = searcher.search(query, new SumCollector.Manager(fieldName, searcher));
 
         if (Float.class.isAssignableFrom(fieldType) || Double.class.isAssignableFrom(fieldType))
-            return collector.getValue();
+            return sum;
         else
-            return (long)collector.getValue();
+            return (long) sum;
     }
 
     private double executeAvg(IndexSearcher searcher, Query query, String fieldName) throws IOException {
@@ -1031,7 +1025,7 @@ public class LuceneIndex implements IndexProvider {
             // Lucene doesn't like limits of 0.  Also, it doesn't efficiently build a total list.
             final TopDocs docs = searcher.search(q, 1);
             log.debug("Executed query [{}] in {} ms", q, System.currentTimeMillis() - time);
-            return QueryUtil.applyOffsetWithQueryLimitAfterCount(docs.totalHits.value, query.getOffset(), query);
+            return QueryUtil.applyOffsetWithQueryLimitAfterCount(docs.totalHits.value(), query.getOffset(), query);
         } catch (final IOException e) {
             throw new TemporaryBackendException("Could not execute Lucene query", e);
         }
